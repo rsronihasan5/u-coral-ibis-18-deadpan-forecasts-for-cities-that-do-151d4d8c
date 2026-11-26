@@ -9,6 +9,8 @@ place feel real.
 """
 
 import os
+import shutil
+import sys
 
 ENTRY = (
     "In New Bumbershoot, expect 87 degrees and a 40% chance of rain "
@@ -23,11 +25,20 @@ def main() -> None:
     os.makedirs(out_dir, exist_ok=True)
     for name in os.listdir(out_dir):
         path = os.path.join(out_dir, name)
-        if os.path.isfile(path) or os.path.islink(path):
-            os.unlink(path)
+        try:
+            if os.path.isdir(path) and not os.path.islink(path):
+                shutil.rmtree(path)
+            else:
+                os.unlink(path)
+        except OSError:
+            # A stale entry we cannot remove must not stop the forecast
+            # from being written; leave it and carry on.
+            continue
     line = ENTRY.strip()
-    assert 1 <= len(line) <= 160, "entry must be 1-160 characters"
-    assert line.strip(), "entry must not be only whitespace"
+    if not 1 <= len(line) <= 160:
+        sys.exit("entry must be 1-160 characters")
+    if not line.strip():
+        sys.exit("entry must not be only whitespace")
     with open(os.path.join(out_dir, "entry.txt"), "w", encoding="utf-8") as f:
         f.write(line)
 
